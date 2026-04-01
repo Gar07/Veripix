@@ -43,14 +43,16 @@ if app_mode == "Single Investigation":
         module = st.sidebar.selectbox("Analysis Module", [
             "Dashboard (Metadata)", 
             "Compression ELA (Splicing)",
-            "Explainable AI (Target Bounding Box)", # FITUR BARU
+            "Explainable AI (Target Bounding Box)",
+            "3D Anomaly Topography (Visualizer)",
             "SIFT Copy-Move (Cloning)", 
             "Noise Map Residual", 
             "AI Detect (FFT)", 
             "Steganography (LSB)", 
             "Extract Text (OCR)", 
             "Color Profiling (Histogram)", 
-            "Location Tracker (OSINT)"
+            "Location Tracker (OSINT)",
+            "Reverse Image Search (OSINT API)"
         ])
         
         temp_img_path = "temp_web_target.jpg"
@@ -142,6 +144,44 @@ if app_mode == "Single Investigation":
                         with open(map_path, "r", encoding='utf-8') as f:
                             components.html(f.read(), height=400)
                     else: st.warning(msg)
+
+            elif module == "3D Anomaly Topography (Visualizer)":
+                with st.spinner("Rendering 3D Surface..."):
+                    fig = engine.generate_3d_anomaly_surface(temp_img_path)
+                    if fig:
+                        # Tampilkan grafik interaktif Plotly
+                        st.plotly_chart(fig, use_container_width=True)
+                        st.info("💡 TIP: Anda dapat memutar, zoom, dan melihat grafik 3D di atas. Puncak (gunung) yang sangat tinggi mengindikasikan tingkat kompresi error yang tinggi (potensi tempelan/teks).")
+                    else:
+                        st.error("Gagal melakukan render 3D.")
+
+            elif module == "Reverse Image Search (OSINT API)":
+                st.info("Fitur ini membutuhkan API Key gratis dari api.imgbb.com")
+                imgbb_key = st.text_input("Masukkan ImgBB API Key:", type="password")
+                st.write("🕵️‍♂️ **Cross-Platform Reverse Image Search**")
+                st.caption("VeriPix akan mengunggah gambar sebagai 'umpan' dan mencari rekam jejaknya di seluruh internet.")
+                
+                # Cek apakah user sudah memasukkan API Key di sidebar
+                if 'imgbb_key' in locals() and imgbb_key != "":
+                    if st.button("🚀 Mulai Penelusuran Internet"):
+                        with st.spinner("Mengunggah umpan dan menganalisis database global..."):
+                            success, links, img_url = engine.reverse_image_search_osint(temp_img_path, imgbb_key)
+                            
+                            if success:
+                                st.success("Umpan berhasil diunggah!")
+                                st.image(img_url, width=150, caption="Umpan Cloud")
+                                st.markdown("### 🌐 OSINT Investigation Links")
+                                st.markdown("Klik tautan di bawah ini untuk mencari jejak gambar:")
+                                
+                                # Buat tombol link bergaya elegan
+                                for name, url in links.items():
+                                    st.markdown(f"➤ **[{name}]({url})**")
+                                    
+                                st.info("💡 **Strategi Intelijen:** Gunakan Yandex untuk melacak wajah/CCTV (algoritma wajah mereka terbaik), dan gunakan TinEye untuk melacak gambar berita hoax.")
+                            else:
+                                st.error(links) # Berisi pesan error
+                else:
+                    st.warning("⚠️ Masukkan ImgBB API Key untuk menggunakan fitur ini.")
     else:
         st.info("👈 Upload gambar target di sidebar untuk memulai.")
 

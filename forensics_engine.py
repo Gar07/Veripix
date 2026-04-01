@@ -5,7 +5,9 @@ import io
 import os
 import hashlib
 import time
-
+import requests
+import base64
+import plotly.graph_objects as go
 import folium
 import webbrowser
 import pytesseract
@@ -203,6 +205,70 @@ class ForensicsEngine:
             plt.close() 
             return Image.open(buf)
         except Exception: return None
+    def generate_3d_anomaly_surface(self, image_path):
+        """
+        FITUR BARU: Memetakan ELA ke dalam grafik topografi 3D interaktif.
+        Piksel yang diedit akan melonjak seperti gunung.
+        """
+        try:
+            # Dapatkan hasil ELA (hitam putih)
+            ela_img = self.perform_ela(image_path, quality=90)
+            if not ela_img: return None
+            
+            # Konversi ke array NumPy
+            ela_array = np.array(ela_img.convert('L'))
+            
+            # Resize agar proses render 3D di web tidak lag (maksimal 100x100)
+            ela_resized = cv2.resize(ela_array, (100, 100))
+            
+            # Buat grafik 3D Surface menggunakan Plotly
+            fig = go.Figure(data=[go.Surface(z=ela_resized, colorscale='Inferno')])
+            fig.update_layout(
+                title='3D ELA Topography (Spikes = Potential Manipulation)',
+                autosize=False,
+                width=700, height=600,
+                scene=dict(
+                    xaxis_title='X (Width)',
+                    yaxis_title='Y (Height)',
+                    zaxis_title='Error Intensity'
+                ),
+                paper_bgcolor='#0E1117',
+                font=dict(color='white')
+            )
+            return fig
+        except Exception as e:
+            print(f"3D Surface Error: {e}")
+            return None
+
+    def reverse_image_search_osint(self, image_path, imgbb_api_key):
+        """
+        FITUR BARU: Mengunggah gambar ke server sementara (ImgBB) 
+        dan membuat tautan pelacakan OSINT untuk Google, Yandex, dan TinEye.
+        """
+        try:
+            # Baca gambar dan encode ke Base64
+            with open(image_path, "rb") as file:
+                payload = {"key": imgbb_api_key, "image": base64.b64encode(file.read())}
+            
+            # Upload ke ImgBB
+            response = requests.post("https://api.imgbb.com/1/upload", data=payload)
+            result = response.json()
+            
+            if response.status_code == 200:
+                img_url = result['data']['url']
+                
+                # Buat Link OSINT
+                osint_links = {
+                    "Google Lens (Global Search)": f"https://lens.google.com/uploadbyurl?url={img_url}",
+                    "Yandex Images (Best for Face/CCTV)": f"https://yandex.com/images/search?rpt=imageview&url={img_url}",
+                    "TinEye (Best for Copyright/News)": f"https://tineye.com/search?url={img_url}"
+                }
+                return True, osint_links, img_url
+            else:
+                return False, f"Upload gagal: {result.get('error', {}).get('message', 'Unknown Error')}", None
+                
+        except Exception as e:
+            return False, f"API Request Error: {e}", None
 
     def extract_metadata(self, image_path):
         result = {}

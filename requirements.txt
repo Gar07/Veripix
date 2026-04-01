@@ -8,3 +8,5 @@ pytesseract
 matplotlib
 geopy
 pandas
+requests
+plotly
