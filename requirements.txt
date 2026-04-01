@@ -6,3 +6,5 @@ fpdf
 folium
 pytesseract
 matplotlib
+geopy
+pandas
