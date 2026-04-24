@@ -71,25 +71,74 @@ if app_mode == "🔍 Single Investigation":
             f.write(uploaded_file.getbuffer())
         
         # Header UI & Ekspor Laporan PDF
-        col1, col2 = st.columns([3, 1])
-        with col1: 
+        col_title, col_btn1, col_btn2 = st.columns([2, 1, 1])
+        with col_title: 
             clean_module_name = module if "--" not in module else module.replace("--", "").strip()
             st.title(f"🔍 {clean_module_name}")
             
-        with col2:
+        # Tombol 1: Report Tunggal
+        with col_btn1:
             if "--" not in module and module != "Dashboard (Metadata)":
-                if st.button("📄 Generate Intelligence PDF"):
-                    with st.spinner('Compiling Dossier...'):
+                if st.button("📄 Generate Single Report"):
+                    with st.spinner('Compiling Single Dossier...'):
                         meta = engine.extract_metadata(temp_img_path)
                         res_path = temp_res_path if os.path.exists(temp_res_path) else None
-                        out_name = f"VeriPix_Dossier_{int(time.time())}.pdf"
+                        out_name = f"VeriPix_Report_{int(time.time())}.pdf"
                         
                         success, msg = ForensicReport().generate_pdf(temp_img_path, meta, module, res_path, out_name)
                         
                         if success:
                             with open(out_name, "rb") as pdf_file:
                                 st.download_button("📥 Download Official Report", data=pdf_file.read(), file_name=out_name, mime='application/pdf')
-                            st.success("Dossier Prepared.")
+                            st.success("Report Prepared.")
+                        else:
+                            st.error(msg)
+                            
+        # Tombol 2: Laporan Kompilasi Lengkap (FITUR ULTIMATE)
+        with col_btn2:
+            if module != "Dashboard (Metadata)":
+                if st.button("📑 Export FULL Compilation Dossier", type="primary"):
+                    with st.spinner('Automating all core spatial & spectral engines...'):
+                        meta = engine.extract_metadata(temp_img_path)
+                        
+                        # Jalankan 4 Modul Paling Penting di Background
+                        st.toast("Running Compression ELA...")
+                        ela = engine.perform_ela(temp_img_path)
+                        st.toast("Running SIFT Forgery Detection...")
+                        sift = engine.detect_copy_move(temp_img_path)
+                        st.toast("Extracting Sensor Noise Map...")
+                        noise = engine.analyze_noise_map(temp_img_path)
+                        st.toast("Transforming FFT Spectrum...")
+                        fft = engine.detect_ai_fft(temp_img_path)
+                        
+                        # Simpan hasil sementara
+                        paths = {}
+                        if ela: 
+                            ela.convert('RGB').save("tmp_ela.jpg")
+                            paths["Compression ELA (Splicing)"] = "tmp_ela.jpg"
+                        if sift: 
+                            sift.convert('RGB').save("tmp_sift.jpg")
+                            paths["SIFT Copy-Move (Cloning)"] = "tmp_sift.jpg"
+                        if noise: 
+                            noise.convert('RGB').save("tmp_noise.jpg")
+                            paths["Noise Map Residual"] = "tmp_noise.jpg"
+                        if fft: 
+                            fft.convert('RGB').save("tmp_fft.jpg")
+                            paths["AI Detect (FFT Spectrum)"] = "tmp_fft.jpg"
+                            
+                        # Rakit ke dalam 1 PDF
+                        st.toast("Compiling multi-page dossier...")
+                        out_name = f"VeriPix_Full_Dossier_{int(time.time())}.pdf"
+                        success, msg = ForensicReport().generate_compilation_pdf(temp_img_path, meta, paths, out_name)
+                        
+                        # Bersihkan memori file temp
+                        for p in paths.values():
+                            if os.path.exists(p): os.remove(p)
+                        
+                        if success:
+                            with open(out_name, "rb") as pdf_file:
+                                st.download_button("📥 Download FULL Dossier", data=pdf_file.read(), file_name=out_name, mime='application/pdf')
+                            st.success("Full Dossier successfully compiled!")
                         else:
                             st.error(msg)
                             

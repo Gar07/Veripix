@@ -6,18 +6,15 @@ from PIL import Image
 class ForensicReport(FPDF):
     """
     Modul Generator PDF untuk VeriPix.
-    Bertanggung jawab merakit data intelijen, metadata, dan gambar ke dalam
-    format laporan formal yang siap digunakan sebagai dokumen pembuktian.
+    Membuat Laporan Tunggal atau Laporan Kompilasi Multi-Halaman.
     """
     
     def sanitize_txt(self, txt):
-        """Menghapus karakter Unicode yang tidak didukung oleh standar FPDF (Latin-1)."""
         return str(txt).encode('latin-1', 'replace').decode('latin-1')
 
     def header(self):
-        """Desain Header Laporan (Otomatis muncul di setiap halaman)."""
         self.set_font('Arial', 'B', 18)
-        self.set_text_color(0, 51, 102) # Warna Biru Gelap
+        self.set_text_color(0, 51, 102)
         self.cell(0, 10, 'VERIPIX DIGITAL FORENSICS', 0, 1, 'C')
         self.set_font('Arial', '', 10)
         self.set_text_color(100, 100, 100)
@@ -28,86 +25,60 @@ class ForensicReport(FPDF):
         self.ln(15)
 
     def footer(self):
-        """Desain Footer Laporan."""
         self.set_y(-15)
         self.set_font('Arial', 'I', 8)
         self.set_text_color(128, 128, 128)
         self.cell(0, 10, f'Generated securely by VeriPix Engine - Page {self.page_no()}', 0, 0, 'C')
 
     def chapter_title(self, label):
-        """Pembuat Judul Sub-Bab dengan latar belakang warna."""
         self.set_font('Arial', 'B', 12)
-        self.set_fill_color(230, 240, 255) # Biru Muda
+        self.set_fill_color(230, 240, 255)
         self.set_text_color(0, 0, 0)
         self.cell(0, 8, self.sanitize_txt(f"  {label}"), 0, 1, 'L', 1)
         self.ln(4)
 
     def _get_analysis_explanation(self, analysis_type):
-        """
-        Kamus Pintar (Knowledge Base) Forensik.
-        Mengembalikan teks penjelasan teknis berdasarkan modul yang dijalankan pengguna.
-        """
         explanations = {
-            "Compression ELA (Splicing)": (
-                "METHODOLOGY: Error Level Analysis (ELA) identifies areas within an image that are at different compression levels. "
-                "With JPEG images, the entire picture should generally be at roughly the same level.\n\n"
+            "Compression ELA": (
+                "METHODOLOGY: Error Level Analysis (ELA) identifies areas within an image that are at different compression levels.\n"
                 "INTERPRETATION: Look for areas that are significantly brighter or uniquely colored compared to the surrounding background. "
                 "These high-contrast regions indicate that the pixels were likely pasted from another source (splicing) or modified recently."
             ),
-            "Explainable AI (Target Bounding Box)": (
-                "METHODOLOGY: This module combines ELA with Computer Vision contour detection to automatically isolate and highlight anomalous regions.\n\n"
-                "INTERPRETATION: A red bounding box drawn on the image indicates an algorithmic lock on a region with statistically abnormal compression signatures. "
-                "This heavily suggests a localized digital manipulation, such as text overlay or object insertion."
+            "Explainable AI": (
+                "METHODOLOGY: Combines ELA with Computer Vision contour detection to automatically isolate anomalous regions.\n"
+                "INTERPRETATION: A red bounding box indicates an algorithmic lock on a region with statistically abnormal compression signatures. "
+                "This heavily suggests a localized digital manipulation."
             ),
-            "SIFT Copy-Move (Cloning)": (
-                "METHODOLOGY: Scale-Invariant Feature Transform (SIFT) extracts local geometric features and matches them across the same image to detect copy-move forgery.\n\n"
+            "SIFT Copy-Move": (
+                "METHODOLOGY: Scale-Invariant Feature Transform (SIFT) extracts local geometric features and matches them across the same image.\n"
                 "INTERPRETATION: Red lines connecting two distinct areas within the image confirm that the feature vectors are mathematically identical. "
-                "This is concrete evidence of cloning (copy-pasting an object within the same frame to hide or duplicate elements)."
+                "This is concrete evidence of cloning."
             ),
             "Noise Map Residual": (
-                "METHODOLOGY: High-pass filtering (Median Blur subtraction) isolates the Sensor Pattern Noise (SPN) intrinsic to the camera hardware.\n\n"
-                "INTERPRETATION: An authentic image exhibits a uniform noise pattern. If a specific region (like a face or object) shows a drastically "
-                "smoother or harsher noise texture compared to its surroundings, it indicates composite forgery (splicing from a different camera)."
+                "METHODOLOGY: High-pass filtering isolates the Sensor Pattern Noise (SPN) intrinsic to the camera hardware.\n"
+                "INTERPRETATION: If a specific region shows a drastically smoother or harsher noise texture compared to its surroundings, "
+                "it indicates composite forgery (splicing from a different camera)."
             ),
             "AI Detect (FFT)": (
-                "METHODOLOGY: Fast Fourier Transform (FFT) converts the spatial image into the frequency domain to expose synthetic generation artifacts.\n\n"
-                "INTERPRETATION: Natural photographs display a smooth, star-like frequency dispersion centered in the image. Generative AI models (e.g., Midjourney, DALL-E) "
-                "often leave behind unnatural, geometric grid patterns or 'blind spots' in the high-frequency corners of the spectrum."
+                "METHODOLOGY: Fast Fourier Transform (FFT) converts the spatial image into the frequency domain.\n"
+                "INTERPRETATION: Generative AI models often leave behind unnatural, geometric grid patterns or 'blind spots' in the high-frequency corners of the spectrum."
             ),
             "Steganography (LSB)": (
-                "METHODOLOGY: Least Significant Bit (LSB) extraction strips away all visual data to reveal the absolute 0s and 1s of the lowest color bit-plane.\n\n"
-                "INTERPRETATION: A normal image will display pure random static (white noise). If you observe structured patterns, faded barcodes, "
-                "or solid blocks, it indicates that hidden data or malicious payloads have been steganographically embedded into the pixels."
+                "METHODOLOGY: Least Significant Bit (LSB) extraction strips away all visual data to reveal the absolute lowest color bit-plane.\n"
+                "INTERPRETATION: If you observe structured patterns, faded barcodes, or solid blocks instead of random static, it indicates hidden data."
             ),
-            "Color Profiling (Histogram)": (
-                "METHODOLOGY: RGB Histogram Profiling charts the exact distribution of red, green, and blue pixel intensities (0-255).\n\n"
-                "INTERPRETATION: Natural images have smooth, flowing curves. If the graph displays 'comb effects' (sharp spikes with sudden zero-value gaps), "
-                "it proves the image has undergone global digital color manipulation (such as Instagram filters, contrast boosting, or brush edits)."
+            "Color Profiling": (
+                "METHODOLOGY: RGB Histogram Profiling charts the exact distribution of red, green, and blue pixel intensities.\n"
+                "INTERPRETATION: If the graph displays 'comb effects' (sharp spikes with sudden zero-value gaps), it proves global color manipulation."
             )
         }
-        
-        # Kembalikan penjelasan yang sesuai, atau default jika tidak ada
         for key in explanations:
-            if key in analysis_type:
-                return explanations[key]
-        
-        return "METHODOLOGY: Standard visual data extraction.\nINTERPRETATION: Please review the attached metadata and visual evidence manually."
+            if key in analysis_type: return explanations[key]
+        return "METHODOLOGY: Standard visual data extraction.\nINTERPRETATION: Please review the visual evidence manually."
 
-    def generate_pdf(self, image_path, metadata, analysis_type, result_image_path, output_filename="Report.pdf"):
-        """Fungsi utama untuk merakit PDF."""
-        self.add_page()
-        
-        # --- 1. DOSSIER INFO ---
-        self.set_font('Arial', '', 10)
-        self.cell(40, 6, "Report Date", 0, 0); self.cell(0, 6, f": {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 0, 1)
-        self.cell(40, 6, "Analysis Module", 0, 0); self.cell(0, 6, self.sanitize_txt(f": {analysis_type}"), 0, 1)
-        self.cell(40, 6, "Target File", 0, 0); self.cell(0, 6, self.sanitize_txt(f": {metadata.get('File Name', 'Unknown')}"), 0, 1)
-        self.ln(5)
-
-        # --- 2. METADATA & INTEGRITY ---
+    def _render_metadata_page(self, metadata):
         self.chapter_title('1. Evidence Integrity & Metadata')
         self.set_font('Arial', '', 9)
-        
         keys_priority = ['File Name', 'File Size', 'MD5 Checksum', 'Format', 'Dimensions', 'Make', 'Model', 'Software', 'DateTime']
         
         for key in keys_priority:
@@ -119,53 +90,104 @@ class ForensicReport(FPDF):
                 self.cell(145, 6, self.sanitize_txt(val), border=1, ln=1)
         self.ln(8)
 
-        # --- 3. FORENSIC EXPLANATION (FITUR BARU) ---
-        self.chapter_title('2. Forensic Methodology & Interpretation')
-        self.set_font('Arial', '', 10)
-        explanation_text = self._get_analysis_explanation(analysis_type)
-        self.multi_cell(0, 5, self.sanitize_txt(explanation_text))
-        self.ln(8)
-
-        # --- 4. VISUAL EVIDENCE ---
-        self.chapter_title('3. Visual Evidence Verification')
-        
-        y_pos = self.get_y()
-        self.set_font('Arial', 'B', 10)
-        self.cell(90, 8, "Exhibit A: Original Image", 0, 0, 'C')
-        self.cell(10, 8, "", 0, 0)
-        self.cell(90, 8, "Exhibit B: Processed Result", 0, 1, 'C')
-        
-        img_width = 90
-        try:
-            if os.path.exists(image_path):
-                self.image(image_path, x=10, y=y_pos+10, w=img_width)
-            
-            if result_image_path and os.path.exists(result_image_path):
-                self.image(result_image_path, x=110, y=y_pos+10, w=img_width)
-            else:
-                self.set_xy(110, y_pos+30)
-                self.set_font('Arial', 'I', 10)
-                self.cell(90, 10, "[No visual processing generated]", 0, 0, 'C')
-                
-        except Exception as e:
-            self.set_xy(10, y_pos+10)
-            self.multi_cell(0, 10, self.sanitize_txt(f"[Error rendering visual preview: {str(e)}]"))
-
-        # Mengamankan kursor agar tidak menimpa gambar
-        self.set_y(y_pos + 90) 
-        self.ln(10)
-
-        # --- 5. DISCLAIMER ---
+    def _render_disclaimer(self):
         self.set_font('Arial', 'I', 8)
         self.set_text_color(150, 150, 150)
         disclaimer = ("DISCLAIMER: This document was algorithmically generated by VeriPix OSINT Suite. "
                       "Results are based on mathematical pixel/frequency analysis and do not constitute absolute legal truth. "
-                      "False positives may occur due to extreme native compression or low-resolution sources. "
                       "Human expert verification is strictly advised.")
         self.multi_cell(0, 4, self.sanitize_txt(disclaimer))
+
+    # ---------------------------------------------------------
+    # FUNGSI LAMA (SINGLE REPORT) - Tetap dipertahankan
+    # ---------------------------------------------------------
+    def generate_pdf(self, image_path, metadata, analysis_type, result_image_path, output_filename="Report.pdf"):
+        self.add_page()
+        self.set_font('Arial', '', 10)
+        self.cell(40, 6, "Report Date", 0, 0); self.cell(0, 6, f": {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 0, 1)
+        self.cell(40, 6, "Analysis Module", 0, 0); self.cell(0, 6, self.sanitize_txt(f": {analysis_type}"), 0, 1)
+        self.cell(40, 6, "Target File", 0, 0); self.cell(0, 6, self.sanitize_txt(f": {metadata.get('File Name', 'Unknown')}"), 0, 1)
+        self.ln(5)
+
+        self._render_metadata_page(metadata)
+
+        self.chapter_title('2. Forensic Methodology & Interpretation')
+        self.set_font('Arial', '', 10)
+        self.multi_cell(0, 5, self.sanitize_txt(self._get_analysis_explanation(analysis_type)))
+        self.ln(8)
+
+        self.chapter_title('3. Visual Evidence Verification')
+        y_pos = self.get_y()
+        self.set_font('Arial', 'B', 10)
+        self.cell(90, 8, "Exhibit A: Original Image", 0, 0, 'C'); self.cell(10, 8, "", 0, 0)
+        self.cell(90, 8, "Exhibit B: Processed Result", 0, 1, 'C')
+        
+        try:
+            if os.path.exists(image_path): self.image(image_path, x=10, y=y_pos+10, w=90)
+            if result_image_path and os.path.exists(result_image_path): self.image(result_image_path, x=110, y=y_pos+10, w=90)
+        except Exception: pass
+
+        self.set_y(y_pos + 90); self.ln(10)
+        self._render_disclaimer()
+
+        try:
+            self.output(output_filename); return True, output_filename
+        except Exception as e: return False, str(e)
+
+    # ---------------------------------------------------------
+    # FUNGSI BARU (FULL COMPILATION DOSSIER)
+    # ---------------------------------------------------------
+    def generate_compilation_pdf(self, image_path, metadata, analysis_results_dict, output_filename="Full_Dossier.pdf"):
+        """
+        analysis_results_dict: Dictionary berisi { "Nama Modul": "path_gambar_hasil.jpg" }
+        """
+        self.add_page()
+        
+        # Halaman 1: Cover & Metadata
+        self.set_font('Arial', 'B', 14)
+        self.cell(0, 10, "FULL FORENSIC COMPILATION DOSSIER", 0, 1, 'C')
+        self.set_font('Arial', '', 10)
+        self.cell(0, 6, f"Date Compiled: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 0, 1, 'C')
+        self.ln(10)
+
+        self._render_metadata_page(metadata)
+        
+        # Tampilkan Gambar Asli di Halaman Pertama sebagai Referensi Utama
+        self.chapter_title('Primary Evidence (Original)')
+        if os.path.exists(image_path):
+            self.image(image_path, x=60, w=90) # Ditengah
+        self.ln(10)
+
+        # Halaman Selanjutnya: Looping setiap hasil analisis
+        chapter_num = 2
+        for module_name, res_path in analysis_results_dict.items():
+            self.add_page() # Tiap modul mendapat halaman baru agar rapi
+            
+            self.chapter_title(f'{chapter_num}. Module: {module_name}')
+            chapter_num += 1
+            
+            # Penjelasan Teori
+            self.set_font('Arial', '', 10)
+            self.multi_cell(0, 5, self.sanitize_txt(self._get_analysis_explanation(module_name)))
+            self.ln(8)
+            
+            # Visualisasi
+            self.set_font('Arial', 'B', 10)
+            self.cell(0, 8, "Visual Extraction Result:", 0, 1, 'L')
+            
+            if res_path and os.path.exists(res_path):
+                # Render gambar hasil cukup besar di tengah
+                self.image(res_path, x=45, w=120) 
+            else:
+                self.set_font('Arial', 'I', 10)
+                self.cell(0, 10, "[No anomalous regions detected / Clean]", 0, 1, 'C')
+
+        # Halaman Terakhir: Disclaimer
+        self.ln(20)
+        self._render_disclaimer()
 
         try:
             self.output(output_filename)
             return True, output_filename
         except Exception as e:
-            return False, f"PDF Generation Failed. Error: {str(e)}"
+            return False, f"PDF Compilation Failed. Error: {str(e)}"
