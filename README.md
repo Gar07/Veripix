@@ -25,7 +25,7 @@ To run this application locally on your machine:
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/Gar07/Veripix.md](https://github.com/Gar07/Veripix.md)
+    git clone https://github.com/Gar07/Veripix.git
     cd Veripix
     ```
 2.  **Install system dependencies (Tesseract):**
