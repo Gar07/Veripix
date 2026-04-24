@@ -13,7 +13,7 @@ class VeriPixApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("VeriPix Advanced Forensics Suite v3.0")
+        self.title("VeriPix Advanced Forensics Suite")
         self.geometry("1200x800") 
         
         self.engine = ForensicsEngine()
